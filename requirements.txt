@@ -2,6 +2,7 @@ backcall==0.1.0
 bokeh==1.0.4
 Click==7.0
 cloudpickle==0.6.1
+colorama==0.4.1
 dask==1.0.0
 decorator==4.3.0
 distributed==1.25.2
@@ -31,7 +32,7 @@ py-cpuinfo==4.0.0
 Pygments==2.3.1
 pyparsing==2.3.0
 python-dateutil==2.7.5
-PyYAML==3.13
+PyYAML==4.2b4
 sacred==0.7.4
 scipy==1.2.0
 six==1.12.0
