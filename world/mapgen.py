@@ -1,39 +1,41 @@
 from os.path import dirname, join
 import numpy as np
 import lut2d
+import pixelcrawl
+import time
 
 lut = np.loadtxt(join(dirname(__file__), 'blobgen_lut2d.dat'), dtype='uint8')
 
 class Map:
     def __init__(self, size, seed=None):
+        w = pixelcrawl.World()
+
+        if seed is None:
+            seed = int(time.time() * 1000) % 2**30
         self.size = size
         rnd = np.random.RandomState(seed)
+        w.seed(seed)
 
-        self.walls = rnd.randint(0, 2, (size, size), dtype='uint8')
+        walls = rnd.randint(0, 2, (size, size), dtype='uint8')
         for i in range(11):
-            self.walls = lut2d.binary_lut_filter(self.walls, lut)
+            walls = lut2d.binary_lut_filter(walls, lut)
 
-        self.food = rnd.randint(0, 2, (size, size), dtype='uint8')
+        food = rnd.randint(0, 2, (size, size), dtype='uint8')
         for i in range(9):
-            self.food = lut2d.binary_lut_filter(self.food, lut)
-            self.food[self.walls > 0] = 0
+            food = lut2d.binary_lut_filter(food, lut)
+            food[walls > 0] = 0
+
+        w.init_map(walls, food)
+
+        # a = pixelcrawl.Agent()
+        # a.x = 4
+        w.init_agents()
+
+        self.w = w
 
     def render(self):
-        img = np.zeros(shape=(self.size, self.size, 3))
-
-        def add_layer(bitmap, color, alpha=1.0):
-            img[bitmap > 0, :] *= 1 - alpha
-            img[bitmap > 0, 0] += alpha * color[0]
-            img[bitmap > 0, 1] += alpha * color[1]
-            img[bitmap > 0, 2] += alpha * color[2]
-
-        add_layer(self.walls, (255, 255, 255))
-        add_layer(self.food, (200, 80, 80), 0.8)
-        return img.astype('uint8')
-
-
-if __name__ == '__main__':
-    import imageio
-    size = 128
-    map = Map(size)
-    imageio.imwrite('mapgen-output.png', map.render())
+        img = np.zeros(shape=(self.size, self.size, 3), dtype='uint8')
+        img[:, :, 0] = self.w.render(0)
+        img[:, :, 1] = self.w.render(1)
+        img[:, :, 2] = self.w.render(2)
+        return img
