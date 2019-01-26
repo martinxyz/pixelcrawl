@@ -3,11 +3,14 @@ import numpy as np
 import lut2d
 import pixelcrawl
 import time
+from experiment import ex
 
 lut = np.loadtxt(join(dirname(__file__), 'blobgen_lut2d.dat'), dtype='uint8')
 
 class Map:
-    def __init__(self, size, params, seed=None):
+    @ex.capture
+    def __init__(self, size, params=None, seed=None, bias_fac=0.1, l2_skew=1.0):
+        print('bias_fac:', bias_fac)
         w = pixelcrawl.World()
 
         if seed is None:
@@ -35,18 +38,23 @@ class Map:
         # agent_params = np.randn(weight_count + bias_count)
         # idx = 0
 
-        # randn = np.random.randn
-        idx = [0]
-        def randn(*shape):
-            res = params[idx[0]:idx[0]+np.prod(shape)].reshape(*shape)
-            idx[0] += np.prod(shape)
-            assert shape == res.shape
-            return res
-        ac.w0 = randn(*ac.w0.shape)
-        ac.b0 = randn(*ac.b0.shape) * 0.1
-        ac.w1 = randn(*ac.w1.shape)
-        ac.b1 = randn(*ac.b1.shape) * 0.1
-        assert idx[0] == len(params), idx
+        if params is None:
+            randn = np.random.randn
+        else:
+            idx = [0]
+            def randn(*shape):
+                res = params[idx[0]:idx[0]+np.prod(shape)].reshape(*shape)
+                idx[0] += np.prod(shape)
+                assert shape == res.shape
+                return res
+
+        ac.w0 = randn(*ac.w0.shape) / l2_skew
+        ac.b0 = randn(*ac.b0.shape) * bias_fac / l2_skew
+        ac.w1 = randn(*ac.w1.shape) * l2_skew
+        ac.b1 = randn(*ac.b1.shape) * bias_fac * l2_skew
+
+        if params is not None:
+            assert idx[0] == len(params), idx
 
         w.init_agents(ac)
 

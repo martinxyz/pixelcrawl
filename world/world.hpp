@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <memory>
 #include <random>
+#include <chrono>
 #include <iostream>
 #include <cstring>
 #include <Eigen/Core>
@@ -59,6 +60,8 @@ class World {
   }
 
   void init_agents(const AgentController &ac) {
+    // XXX wrong place to seed, and thwarts sacred
+    rng.seed(std::chrono::system_clock::now().time_since_epoch().count());
     agentController = ac;
     constexpr int N = world_size;
     std::uniform_int_distribution<int> pos_dist(N/2 - N/12, N/2 + N/12);
