@@ -5,3 +5,5 @@ build/
 *.pyc
 cmaes-*.dat
 core
+perf.*
+.ipynb*
