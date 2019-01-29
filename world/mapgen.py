@@ -10,7 +10,6 @@ lut = np.loadtxt(join(dirname(__file__), 'blobgen_lut2d.dat'), dtype='uint8')
 class Map:
     @ex.capture
     def __init__(self, size, params=None, seed=None, bias_fac=0.1, l2_skew=1.0):
-        print('bias_fac:', bias_fac)
         w = pixelcrawl.World()
 
         if seed is None:

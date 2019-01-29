@@ -128,7 +128,7 @@ class World {
         abort();
       }
 
-      AgentAction action = agentController.calc(inputs, rng);
+      AgentAction action = agentController.calc(inputs, a.state, rng);
 
       int dx = 0;
       int dy = 0;

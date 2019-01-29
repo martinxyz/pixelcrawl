@@ -14,7 +14,7 @@ enum class AgentAction {Right, Down, Left, Up};
 class AgentController: public SmallNN<agent_num_inputs, 20, 4+agent_num_states> {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-  AgentAction calc(Matrix<float, agent_num_inputs, 1> inputs, std::default_random_engine &rng) {
+  AgentAction calc(const Matrix<float, agent_num_inputs, 1> &inputs, float *states, std::default_random_engine &rng) {
     Matrix<float, 4+agent_num_states, 1> o = predict(inputs);
     using std::max;
     using std::exp;
@@ -40,7 +40,11 @@ class AgentController: public SmallNN<agent_num_inputs, 20, 4+agent_num_states> 
     else if (roll < c0+c1+c2) action = AgentAction::Left;
     else action = AgentAction::Up;
 
-    // XXX todo: return updated state somehow
+    constexpr float state_decay = 0.01;
+    for (int i=0; i<agent_num_states; i++) {
+        states[i] = (1.0-state_decay)*states[i] + state_decay*o(i+4);
+    }
+
     return action;
   }
 };
