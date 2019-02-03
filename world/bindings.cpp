@@ -18,12 +18,6 @@ PYBIND11_MODULE(pixelcrawl, m) {
 
   m.def("render_world", &render_world);
 
-  py::class_<Agent>(m, "Agent")
-      .def(py::init<>())
-      .def_readwrite("x", &Agent::x)
-      .def_readwrite("y", &Agent::y)
-      ;
-
   py::class_<AgentController>(m, "AgentController")
       .def(py::init<>())
       .def_readwrite("w0", &AgentController::w0)

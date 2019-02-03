@@ -7,3 +7,6 @@ cmaes-*.dat
 core
 perf.*
 .ipynb*
+CMakeCache.txt
+CMakeFiles
+Makefile

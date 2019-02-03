@@ -1,31 +1,38 @@
 #!/usr/bin/env python3
 from world import mapgen
-from experiment import ex
 import numpy as np
 import cma
+from sacred import Experiment
+ex = Experiment('cmaes-agent', ingredients=[mapgen.ing])
+
+@ex.config
+def cfg(_log):
+    cmaes_sigma = 0.4
+    world_count = 5  # number of worlds to evaluate with
+    iterations = 2000
 
 @ex.capture
-def evaluate(params, world_count, world_size):
+def evaluate(params, world_count):
     rewards = []
     for seed in range(world_count):
-        m = mapgen.Map(world_size, params, seed)
+        world = mapgen.create_world(params, seed)
         for i in range(200):
-            m.w.tick()
-        rewards.append(m.w.total_score)
+            world.tick()
+        rewards.append(world.total_score)
     mean_reward = np.mean(rewards)
     return mean_reward
 
 @ex.automain
-def main(_run, cmaes_sigma):
+def main(_run, cmaes_sigma, iterations):
     # while not es.stop():
     param_count = 590
     es = cma.CMAEvolutionStrategy(param_count * [0], cmaes_sigma)
-    logger = cma.CMADataLogger('outputs/pix3/cmaes-').register(es)
+    logger = cma.CMADataLogger('tmp/cmaes-').register(es)
 
     evaluations = 0
     
     # while not es.stop():
-    for i in range(2000):
+    for i in range(iterations):
         solutions = es.ask()
         print('asked to evaluate', len(solutions), 'solutions')
 
@@ -42,3 +49,5 @@ def main(_run, cmaes_sigma):
 
         logger.add()  # write data to disc to be plotted
         es.disp()
+
+    es.result_pretty()
