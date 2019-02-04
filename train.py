@@ -2,8 +2,13 @@
 from world import mapgen
 import numpy as np
 import cma
+import sys
+import os
 from sacred import Experiment
+from sacred.observers import FileStorageObserver
+
 ex = Experiment('cmaes-agent', ingredients=[mapgen.ing])
+output_dir = None
 
 @ex.config
 def cfg(_log):
@@ -11,24 +16,34 @@ def cfg(_log):
     world_count = 5  # number of worlds to evaluate with
     iterations = 2000
 
+# core loop (separated for easy profiling)
+def tick_200(world):
+    for i in range(200):
+        world.tick()
+
 @ex.capture
 def evaluate(params, world_count):
     rewards = []
     for seed in range(world_count):
-        world = mapgen.create_world(params=params, map_seed=seed)
-        for i in range(200):
-            world.tick()
+        world = mapgen.create_world(map_seed=seed)
+        mapgen.add_agents(world, params=params)
+        tick_200(world)
         rewards.append(world.total_score)
     mean_reward = np.mean(rewards)
     return mean_reward
 
-@ex.automain
-def main(_run, cmaes_sigma, iterations):
+def save_array(filename, data):
+    with open(os.path.join(output_dir, filename), 'w') as f:
+        np.savetxt(f, data)
+
+@ex.main
+def experiment_main(_run, _seed, cmaes_sigma, iterations):
     # while not es.stop():
     param_count = mapgen.count_params()
     print('param_count:', param_count)
-    es = cma.CMAEvolutionStrategy(param_count * [0], cmaes_sigma)
-    logger = cma.CMADataLogger('tmp/cmaes-').register(es)
+    _run.info['param_count'] = param_count
+    es = cma.CMAEvolutionStrategy(param_count * [0], cmaes_sigma, {'seed': _seed})
+    # logger = cma.CMADataLogger(os.path.join(output_dir, 'cmaes-')).register(es)
 
     evaluations = 0
     
@@ -47,8 +62,40 @@ def main(_run, cmaes_sigma, iterations):
         _run.log_scalar("training.max_reward", max(rewards), evaluations)
         _run.log_scalar("training.med_reward", np.median(rewards), evaluations)
         _run.log_scalar("training.avg_reward", np.average(rewards), evaluations)
+        _run.result = max(rewards)
 
-        logger.add()  # write data to disc to be plotted
+        save_array('xbest.dat', es.result.xbest)
+        save_array(f'mean-step%05d.dat' % i, es.mean)
+        # logger.add()  # write data to disc to be plotted
         es.disp()
-
     es.result_pretty()
+
+
+def main():
+    global output_dir
+    args = sys.argv.copy()
+
+    if '-h' in args or '--help' in args:
+        ex.run_commandline([args[0], '--help'])
+        sys.exit(0)
+
+    if '-o' in args:
+        idx = args.index('-o')
+        args.pop(idx)
+        output_dir = args.pop(idx)
+
+        if os.path.exists(output_dir) and os.listdir(output_dir):
+                print('Directory already has content! Not overwriting:', output_dir)
+                sys.exit(1)
+    else:
+        output_dir = 'unnamed_output'
+
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    ex.observers.append(FileStorageObserver.create(output_dir))
+    args.insert(1, '--name=' + os.path.split(output_dir)[-1])
+    ex.run_commandline(args)
+
+if __name__ == '__main__':
+    main()

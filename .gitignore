@@ -10,3 +10,7 @@ perf.*
 CMakeCache.txt
 CMakeFiles
 Makefile
+unnamed_output
+outputs
+cmake_install.cmake
+profile.dat
