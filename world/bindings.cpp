@@ -8,8 +8,7 @@ namespace py = pybind11;
 
 PYBIND11_MODULE(pixelcrawl, m) {
   py::class_<World>(m, "World")
-      .def(py::init<>())
-      .def("seed", &World::seed)
+      .def(py::init<unsigned int>())
       .def("init_map", &World::init_map)
       .def("init_agents", &World::init_agents)
       .def("tick", &World::tick)

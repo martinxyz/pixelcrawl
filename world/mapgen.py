@@ -14,17 +14,24 @@ def cfg():
     l2_skew = 1.0
 
 @ing.capture
-def create_world(params, seed,
-                 _run, world_size, bias_fac, l2_skew):
+def count_params(world_size):
+    ac = pixelcrawl.AgentController()
+    cnt = 0
+    cnt += np.prod(ac.w0.shape)
+    cnt += np.prod(ac.b0.shape)
+    cnt += np.prod(ac.w1.shape)
+    cnt += np.prod(ac.b1.shape)
+    return cnt
+
+
+@ing.capture
+def create_world(params, map_seed,
+                 _seed, _run, world_size, bias_fac, l2_skew):
     size = world_size
-
-    w = pixelcrawl.World()
-
-    rnd = np.random.RandomState(seed)
-    w.seed(seed)
+    rnd = np.random.RandomState(map_seed)
 
     lut_fn = join(dirname(__file__), 'blobgen_lut2d.dat')
-    _run.add_artifact(lut_fn)
+    _run.add_artifact(lut_fn, metadata={'content-type': 'text/plain'})
     lut = np.loadtxt(lut_fn, dtype='uint8')
 
     walls = rnd.randint(0, 2, (size, size), dtype='uint8')
@@ -36,6 +43,7 @@ def create_world(params, seed,
         food = lut2d.binary_lut_filter(food, lut)
         food[walls > 0] = 0
 
+    w = pixelcrawl.World(_seed)
     w.init_map(walls, food)
 
     ac = pixelcrawl.AgentController()

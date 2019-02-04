@@ -7,7 +7,7 @@
 using Eigen::Matrix;
 
 constexpr int agent_num_states = 6;
-constexpr int agent_num_inputs = agent_num_states + 2*5 + 1 + 1;
+constexpr int agent_num_inputs = 11 + agent_num_states;
 
 enum class AgentAction {Right, Down, Left, Up};
 

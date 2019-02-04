@@ -38,12 +38,13 @@ using PixelMatrix = Eigen::Matrix<uint8_t, world_size, world_size>;
 class World {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
   Pixel pixels[world_size*world_size];
   vector<Agent> agents{agent_count};
   AgentController agentController;
   int total_score = 0;
 
-  void seed(unsigned int seed) {
+  explicit World(unsigned int seed) {
     rng.seed(seed);
   }
 
@@ -60,8 +61,6 @@ class World {
   }
 
   void init_agents(const AgentController &ac) {
-    // XXX wrong place to seed, and thwarts sacred
-    rng.seed(std::chrono::system_clock::now().time_since_epoch().count());
     agentController = ac;
     constexpr int N = world_size;
     std::uniform_int_distribution<int> pos_dist(N/2 - N/12, N/2 + N/12);
@@ -104,14 +103,14 @@ class World {
       inputs(idx++) = pixel_at(a.x+0, a.y+1).block == Wall ? 1 : 0;
       inputs(idx++) = pixel_at(a.x+0, a.y-1).block == Wall ? 1 : 0;
       // see Food
-      inputs(idx++) = pixel_at(a.x+0, a.y+0).block == Food ? 1 : 0;  // actually, always 0
+      // inputs(idx++) = pixel_at(a.x+0, a.y+0).block == Food ? 1 : 0;  // always 0
       inputs(idx++) = pixel_at(a.x+1, a.y+0).block == Food ? 1 : 0;
       inputs(idx++) = pixel_at(a.x-1, a.y+0).block == Food ? 1 : 0;
       inputs(idx++) = pixel_at(a.x+0, a.y+1).block == Food ? 1 : 0;
       inputs(idx++) = pixel_at(a.x+0, a.y-1).block == Food ? 1 : 0;
       // smell Pheromone
       int count_pheremone_1 = 0;
-      count_pheremone_1 += pixel_at(a.x+0, a.y+0).pheromone_1;  //probably always 1?
+      // count_pheremone_1 += pixel_at(a.x+0, a.y+0).pheromone_1;  // always 1
       count_pheremone_1 += pixel_at(a.x+1, a.y+0).pheromone_1;
       count_pheremone_1 += pixel_at(a.x-1, a.y+0).pheromone_1;
       count_pheremone_1 += pixel_at(a.x+0, a.y+1).pheromone_1;
@@ -124,8 +123,8 @@ class World {
 
       // assert that cannot be turned off (but probably will be optimized away)
       if (idx != agent_num_inputs) {
-        std::cout << "idx:" << idx << std::endl;
-        abort();
+        std::cout << "produced " << idx << " inputs, expected " << agent_num_inputs << std::endl;
+        exit(1);
       }
 
       AgentAction action = agentController.calc(inputs, a.state, rng);

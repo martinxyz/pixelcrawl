@@ -15,7 +15,7 @@ def cfg(_log):
 def evaluate(params, world_count):
     rewards = []
     for seed in range(world_count):
-        world = mapgen.create_world(params, seed)
+        world = mapgen.create_world(params=params, map_seed=seed)
         for i in range(200):
             world.tick()
         rewards.append(world.total_score)
@@ -25,7 +25,8 @@ def evaluate(params, world_count):
 @ex.automain
 def main(_run, cmaes_sigma, iterations):
     # while not es.stop():
-    param_count = 590
+    param_count = mapgen.count_params()
+    print('param_count:', param_count)
     es = cma.CMAEvolutionStrategy(param_count * [0], cmaes_sigma)
     logger = cma.CMADataLogger('tmp/cmaes-').register(es)
 

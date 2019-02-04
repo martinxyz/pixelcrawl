@@ -6,10 +6,10 @@ def test_world_tick(benchmark):
     ex = Experiment('pytest', ingredients=[mapgen.ing])
     @ex.command
     def f():
-        param_count = 590
+        param_count = mapgen.count_params()
         np.random.seed(1)
         params = np.random.randn(param_count)
-        world = mapgen.create_world(seed=1, params=params)
+        world = mapgen.create_world(map_seed=1, params=params)
         benchmark(world.tick)
 
     conf = {'mapgen.world_size': 128}
