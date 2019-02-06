@@ -52,7 +52,8 @@ def render(render):
     def tick_callback(world):
         i[0] += 1
         img = mapgen.render(world)
-        imageio.imwrite(os.path.join(dirname, 'render-world-%04d.png' % i[0]), img)
+        fn = os.path.join(dirname, 'render-world-%04d.png' % i[0])
+        imageio.imwrite(fn, img, compress_level=6)
     params = np.loadtxt(filename)
     reward = evaluate(params)
     print('reward:', reward)
