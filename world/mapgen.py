@@ -13,6 +13,7 @@ def cfg():
     world_size = 128
     bias_fac = 0.1  # scale NN bias init (relative to weight init)
     l2_skew = 1.0
+    agent_count = 200
 
 @ing.capture
 def count_params():
@@ -51,7 +52,7 @@ def create_world(map_seed,
 
 @ing.capture
 def add_agents(world, params,
-               bias_fac, l2_skew):
+               bias_fac, l2_skew, agent_count):
 
     ac = pixelcrawl.AgentController()
 
@@ -70,8 +71,9 @@ def add_agents(world, params,
     if params is not None:
         assert idx[0] == len(params), idx
 
-    world.init_agents(ac)
+    world.init_agents(ac, agent_count)
 
+@ing.capture
 def render(world, world_size):
     img = np.zeros(shape=(world_size, world_size, 3), dtype='uint8')
     img[:, :, 0] = pixelcrawl.render_world(world, 0)

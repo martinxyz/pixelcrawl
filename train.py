@@ -4,6 +4,7 @@ import numpy as np
 import cma
 import sys
 import os
+import imageio
 from sacred import Experiment
 from sacred.observers import FileStorageObserver
 
@@ -14,20 +15,24 @@ output_dir = None
 def cfg(_log):
     cmaes_sigma = 0.4
     world_count = 5  # number of worlds to evaluate with
+    world_ticks = 200
     iterations = 2000
+    render = None  # directory (or param filename) used by 'render' command
 
 # core loop (separated for easy profiling)
-def tick_200(world):
-    for i in range(200):
-        world.tick()
+tick_callback = lambda world: None
+def tick(world):
+    world.tick()
+    tick_callback(world)
 
 @ex.capture
-def evaluate(params, world_count):
+def evaluate(params, world_count, world_ticks):
     rewards = []
     for seed in range(world_count):
         world = mapgen.create_world(map_seed=seed)
         mapgen.add_agents(world, params=params)
-        tick_200(world)
+        for i in range(world_ticks):
+            tick(world)
         rewards.append(world.total_score)
     mean_reward = np.mean(rewards)
     return mean_reward
@@ -35,6 +40,22 @@ def evaluate(params, world_count):
 def save_array(filename, data):
     with open(os.path.join(output_dir, filename), 'w') as f:
         np.savetxt(f, data)
+
+@ex.command(unobserved=True)
+def render(render):
+    filename = render
+    if os.path.isdir(filename):
+        filename = os.path.join(filename, 'xbest.dat')
+    dirname = os.path.dirname(filename)
+    global tick_callback
+    i = [0]
+    def tick_callback(world):
+        i[0] += 1
+        img = mapgen.render(world)
+        imageio.imwrite(os.path.join(dirname, 'render-world-%04d.png' % i[0]), img)
+    params = np.loadtxt(filename)
+    reward = evaluate(params)
+    print('reward:', reward)
 
 @ex.main
 def experiment_main(_run, _seed, cmaes_sigma, iterations):

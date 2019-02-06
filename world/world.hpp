@@ -12,7 +12,6 @@
 using std::vector;
 
 constexpr int world_size = 128;
-constexpr int agent_count = 200;
 
 enum Block {
   Empty = 0,
@@ -40,7 +39,7 @@ class World {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
   Pixel pixels[world_size*world_size];
-  vector<Agent> agents{agent_count};
+  vector<Agent> agents;
   AgentController agentController;
   int total_score = 0;
 
@@ -60,17 +59,20 @@ class World {
     }
   }
 
-  void init_agents(const AgentController &ac) {
+  void init_agents(const AgentController &ac, int agent_count) {
     agentController = ac;
     constexpr int N = world_size;
     std::uniform_int_distribution<int> pos_dist(N/2 - N/12, N/2 + N/12);
     std::normal_distribution<float> state_dist(0.0, 1.0);
-    for (auto &a : agents) {
+
+    for (int i=0; i<agent_count; i++) {
+      Agent a;
       a.x = pos_dist(rng);
       a.y = pos_dist(rng);
       for (auto &v : a.state) {
         v = state_dist(rng);
       }
+      agents.push_back(a);
     }
   }
 
