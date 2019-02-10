@@ -16,7 +16,7 @@ def cfg(_log):
     cmaes_sigma = 0.4
     world_count = 5  # number of worlds to evaluate with
     world_ticks = 200
-    iterations = 2000
+    evaluations = 50000  # maximum number of evaluations for this run
     render = None  # directory (or param filename) used by 'render' command
     use_eval_seed = False  # use a different map seed for each generation
 
@@ -53,14 +53,14 @@ def render(render):
     def tick_callback(world):
         i[0] += 1
         img = mapgen.render(world)
-        fn = os.path.join(dirname, 'render-world-%04d.png' % i[0])
+        fn = os.path.join(dirname, 'render-world-%06d.png' % i[0])
         imageio.imwrite(fn, img, compress_level=6)
     params = np.loadtxt(filename)
     reward = evaluate(params)
     print('reward:', reward)
 
 @ex.main
-def experiment_main(_run, _seed, cmaes_sigma, iterations, use_eval_seed):
+def experiment_main(_run, _seed, cmaes_sigma, evaluations, use_eval_seed):
     # while not es.stop():
     param_count = mapgen.count_params()
     print('param_count:', param_count)
@@ -68,10 +68,10 @@ def experiment_main(_run, _seed, cmaes_sigma, iterations, use_eval_seed):
     es = cma.CMAEvolutionStrategy(param_count * [0], cmaes_sigma, {'seed': _seed})
     # logger = cma.CMADataLogger(os.path.join(output_dir, 'cmaes-')).register(es)
 
-    evaluations = 0
-    
+    evaluation = 0
+    iteration = 0
     # while not es.stop():
-    for i in range(iterations):
+    while evaluation < evaluations:
         solutions = es.ask()
         print('asked to evaluate', len(solutions), 'solutions')
 
@@ -83,19 +83,21 @@ def experiment_main(_run, _seed, cmaes_sigma, iterations, use_eval_seed):
         rewards = [evaluate(x, eval_seed=eval_seed)
                    for x in solutions]
         # rewards = dask.compute(*rewards)
-        print('computed rewards:', rewards)
+        evaluation += len(solutions)
+        iteration += 1
+        print('evaluation', evaluation)
+        print('computed rewards:', reversed(sorted(rewards)))
         es.tell(solutions, [-r for r in rewards])
 
-        evaluations += len(rewards)
-        _run.log_scalar("training.min_reward", min(rewards), evaluations)
-        _run.log_scalar("training.max_reward", max(rewards), evaluations)
-        _run.log_scalar("training.med_reward", np.median(rewards), evaluations)
-        _run.log_scalar("training.avg_reward", np.average(rewards), evaluations)
+        _run.log_scalar("training.min_reward", min(rewards), evaluation)
+        _run.log_scalar("training.max_reward", max(rewards), evaluation)
+        _run.log_scalar("training.med_reward", np.median(rewards), evaluation)
+        _run.log_scalar("training.avg_reward", np.average(rewards), evaluation)
         _run.result = max(rewards)
 
         save_array('xbest.dat', es.result.xbest)
-        if i % 20 == 0:
-            save_array(f'mean-step%05d.dat' % i, es.mean)
+        if iteration % 20 == 0:
+            save_array(f'mean-eval%07d.dat' % evaluation, es.mean)
         # logger.add()  # write data to disc to be plotted
         es.disp()
     es.result_pretty()
