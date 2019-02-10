@@ -18,6 +18,7 @@ def cfg(_log):
     world_ticks = 200
     iterations = 2000
     render = None  # directory (or param filename) used by 'render' command
+    use_eval_seed = False  # use a different map seed for each generation
 
 # core loop (separated for easy profiling)
 tick_callback = lambda world: None
@@ -26,10 +27,10 @@ def tick(world):
     tick_callback(world)
 
 @ex.capture
-def evaluate(params, world_count, world_ticks):
+def evaluate(params, world_count, world_ticks, eval_seed=0):
     rewards = []
-    for seed in range(world_count):
-        world = mapgen.create_world(map_seed=seed)
+    for world_no in range(world_count):
+        world = mapgen.create_world(map_seed=(world_no + eval_seed))
         mapgen.add_agents(world, params=params)
         for i in range(world_ticks):
             tick(world)
@@ -59,7 +60,7 @@ def render(render):
     print('reward:', reward)
 
 @ex.main
-def experiment_main(_run, _seed, cmaes_sigma, iterations):
+def experiment_main(_run, _seed, cmaes_sigma, iterations, use_eval_seed):
     # while not es.stop():
     param_count = mapgen.count_params()
     print('param_count:', param_count)
@@ -74,7 +75,13 @@ def experiment_main(_run, _seed, cmaes_sigma, iterations):
         solutions = es.ask()
         print('asked to evaluate', len(solutions), 'solutions')
 
-        rewards = [evaluate(x) for x in solutions]
+        if use_eval_seed:
+            eval_seed = np.random.randint(100000)
+        else:
+            eval_seed = 0
+
+        rewards = [evaluate(x, eval_seed=eval_seed)
+                   for x in solutions]
         # rewards = dask.compute(*rewards)
         print('computed rewards:', rewards)
         es.tell(solutions, [-r for r in rewards])
@@ -87,7 +94,8 @@ def experiment_main(_run, _seed, cmaes_sigma, iterations):
         _run.result = max(rewards)
 
         save_array('xbest.dat', es.result.xbest)
-        save_array(f'mean-step%05d.dat' % i, es.mean)
+        if i % 20 == 0:
+            save_array(f'mean-step%05d.dat' % i, es.mean)
         # logger.add()  # write data to disc to be plotted
         es.disp()
     es.result_pretty()

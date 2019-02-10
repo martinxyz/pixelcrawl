@@ -1,0 +1,10 @@
+{
+  "mapgen": {
+    "agent_count": 8,
+    "easy_start": true,
+    "walk_through_wall_prob": 0.001
+  },
+  "use_eval_seed": true,
+  "world_ticks": 800,
+  "world_count": 10
+}

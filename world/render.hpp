@@ -14,16 +14,16 @@ RenderBuffer render_world(const World &world, int channel) {
         float value = alpha * rgb[channel] + (1.0 - alpha) * result(y, x);
         result(y, x) = std::round(value);
       };
-      switch (world.pixels[y*world_size+x].block) {
+      switch (world.pixels_[y*world_size+x].block) {
         case Food: blend({200, 80, 80}); break;
         case Wall: blend({255, 255, 255}); break;
       }
-      if (world.pixels[y*world_size+x].pheromone_1) {
+      if (world.pixels_[y*world_size+x].pheromone_1) {
         blend({0, 128, 0}, 0.4);
       }
     }
   }
-  for (auto &a: world.agents) {
+  for (auto &a: world.agents_) {
     result(a.y, a.x) = 0;
     if (channel == 1) result(a.y, a.x) = 255;
   }

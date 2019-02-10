@@ -12,7 +12,7 @@ PYBIND11_MODULE(pixelcrawl, m) {
       .def("init_map", &World::init_map)
       .def("init_agents", &World::init_agents)
       .def("tick", &World::tick)
-      .def_readwrite("total_score", &World::total_score)
+      .def_readwrite("total_score", &World::total_score_)
       ;
 
   m.def("render_world", &render_world);
