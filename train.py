@@ -19,6 +19,7 @@ def cfg(_log):
     evaluations = 50000  # maximum number of evaluations for this run
     render = None  # directory (or param filename) used by 'render' command
     use_eval_seed = False  # use a different map seed for each generation
+    cmaes_popsize = None  # population size
 
 # core loop (separated for easy profiling)
 tick_callback = lambda world: None
@@ -60,12 +61,17 @@ def render(render):
     print('reward:', reward)
 
 @ex.main
-def experiment_main(_run, _seed, cmaes_sigma, evaluations, use_eval_seed):
+def experiment_main(_run, _seed, cmaes_sigma, evaluations, use_eval_seed, cmaes_popsize):
     # while not es.stop():
     param_count = mapgen.count_params()
     print('param_count:', param_count)
     _run.info['param_count'] = param_count
-    es = cma.CMAEvolutionStrategy(param_count * [0], cmaes_sigma, {'seed': _seed})
+
+    opts = {}
+    if cmaes_popsize:
+        opts['popsize'] = cmaes_popsize
+    opts['seed'] = _seed
+    es = cma.CMAEvolutionStrategy(param_count * [0], cmaes_sigma, opts)
     # logger = cma.CMADataLogger(os.path.join(output_dir, 'cmaes-')).register(es)
 
     evaluation = 0
@@ -86,7 +92,7 @@ def experiment_main(_run, _seed, cmaes_sigma, evaluations, use_eval_seed):
         evaluation += len(solutions)
         iteration += 1
         print('evaluation', evaluation)
-        print('computed rewards:', reversed(sorted(rewards)))
+        print('computed rewards:', list(reversed(sorted(rewards))))
         es.tell(solutions, [-r for r in rewards])
 
         _run.log_scalar("training.min_reward", min(rewards), evaluation)
