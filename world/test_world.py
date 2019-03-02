@@ -2,8 +2,10 @@ import numpy as np
 import mapgen
 from sacred import Experiment
 
+
 def test_world_tick(benchmark):
     ex = Experiment('pytest', ingredients=[mapgen.ing])
+
     @ex.command
     def f():
         np.random.seed(1)

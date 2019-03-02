@@ -11,6 +11,7 @@ from sacred.observers import FileStorageObserver
 ex = Experiment('cmaes-agent', ingredients=[mapgen.ing])
 output_dir = None
 
+
 @ex.config
 def cfg(_log):
     cmaes_sigma = 0.4
@@ -21,11 +22,16 @@ def cfg(_log):
     use_eval_seed = False  # use a different map seed for each generation
     cmaes_popsize = None  # population size
 
+
 # core loop (separated for easy profiling)
-tick_callback = lambda world: None
+def tick_callback(world):
+    pass
+
+
 def tick(world):
     world.tick()
     tick_callback(world)
+
 
 @ex.capture
 def evaluate(params, world_count, world_ticks, eval_seed=0):
@@ -39,9 +45,11 @@ def evaluate(params, world_count, world_ticks, eval_seed=0):
     mean_reward = np.mean(rewards)
     return mean_reward
 
+
 def save_array(filename, data):
     with open(os.path.join(output_dir, filename), 'w') as f:
         np.savetxt(f, data)
+
 
 @ex.command(unobserved=True)
 def render(render):
@@ -51,17 +59,22 @@ def render(render):
     dirname = os.path.dirname(filename)
     global tick_callback
     i = [0]
+
     def tick_callback(world):
         i[0] += 1
         img = mapgen.render(world)
         fn = os.path.join(dirname, 'render-world-%06d.png' % i[0])
         imageio.imwrite(fn, img, compress_level=6)
+
     params = np.loadtxt(filename)
     reward = evaluate(params)
     print('reward:', reward)
 
+
 @ex.main
-def experiment_main(_run, _seed, cmaes_sigma, evaluations, use_eval_seed, cmaes_popsize):
+def experiment_main(
+    _run, _seed, cmaes_sigma, evaluations, use_eval_seed, cmaes_popsize
+):
     # while not es.stop():
     param_count = mapgen.count_params()
     print('param_count:', param_count)
@@ -82,12 +95,11 @@ def experiment_main(_run, _seed, cmaes_sigma, evaluations, use_eval_seed, cmaes_
         print('asked to evaluate', len(solutions), 'solutions')
 
         if use_eval_seed:
-            eval_seed = np.random.randint(100000)
+            eval_seed = np.random.randint(100_000)
         else:
             eval_seed = 0
 
-        rewards = [evaluate(x, eval_seed=eval_seed)
-                   for x in solutions]
+        rewards = [evaluate(x, eval_seed=eval_seed) for x in solutions]
         # rewards = dask.compute(*rewards)
         evaluation += len(solutions)
         iteration += 1
@@ -123,8 +135,8 @@ def main():
         output_dir = args.pop(idx)
 
         if os.path.exists(output_dir) and os.listdir(output_dir):
-                print('Directory already has content! Not overwriting:', output_dir)
-                sys.exit(1)
+            print('Directory already has content! Not overwriting:', output_dir)
+            sys.exit(1)
     else:
         output_dir = 'unnamed_output'
 
@@ -134,6 +146,7 @@ def main():
     ex.observers.append(FileStorageObserver.create(output_dir))
     args.insert(1, '--name=' + os.path.split(output_dir)[-1])
     ex.run_commandline(args)
+
 
 if __name__ == '__main__':
     main()

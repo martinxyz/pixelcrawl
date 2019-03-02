@@ -8,6 +8,7 @@ from functools import lru_cache
 
 ing = Ingredient('mapgen')
 
+
 @ing.config
 def cfg():
     world_size = 128
@@ -16,6 +17,7 @@ def cfg():
     agent_count = 200
     easy_start = False
     walk_through_wall_prob = 0.0625
+
 
 @ing.capture
 def count_params():
@@ -26,6 +28,7 @@ def count_params():
     cnt += np.prod(ac.w1.shape)
     cnt += np.prod(ac.b1.shape)
     return cnt
+
 
 @lru_cache(maxsize=100)
 def gen_walls_and_food(map_seed, size):
@@ -44,23 +47,26 @@ def gen_walls_and_food(map_seed, size):
 
     return walls, food
 
+
 @ing.capture
-def create_world(map_seed,
-                 _seed, _run, world_size):
+def create_world(map_seed, _seed, _run, world_size):
     world = pixelcrawl.World(_seed)
     walls, food = gen_walls_and_food(map_seed, world_size)
     world.init_map(walls, food)
     return world
 
+
 @ing.capture
-def add_agents(world, params,
-               bias_fac, l2_skew, agent_count, easy_start, walk_through_wall_prob):
+def add_agents(
+    world, params, bias_fac, l2_skew, agent_count, easy_start, walk_through_wall_prob
+):
 
     ac = pixelcrawl.AgentController()
 
     idx = [0]
+
     def randn(*shape):
-        res = params[idx[0]:idx[0]+np.prod(shape)].reshape(*shape)
+        res = params[idx[0] : idx[0] + np.prod(shape)].reshape(*shape)
         idx[0] += np.prod(shape)
         assert shape == res.shape
         return res
@@ -74,6 +80,7 @@ def add_agents(world, params,
         assert idx[0] == len(params), idx
 
     world.init_agents(ac, agent_count, easy_start, walk_through_wall_prob)
+
 
 @ing.capture
 def render(world, world_size):
