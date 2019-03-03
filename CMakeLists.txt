@@ -2,7 +2,8 @@ cmake_minimum_required(VERSION 3.8)
 project(pixelcrawl)
 
 find_package(Eigen3 3.3 REQUIRED NO_MODULE)
-find_package(pybind11 2.2 REQUIRED NO_MODULE)
+# find_package(pybind11 2.2 REQUIRED NO_MODULE)
+add_subdirectory(external/pybind11)
 
 pybind11_add_module(pixelcrawl world/bindings.cpp)
 target_compile_features(pixelcrawl PUBLIC cxx_std_14)
