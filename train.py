@@ -7,6 +7,7 @@ import os
 import imageio
 from sacred import Experiment
 from sacred.observers import FileStorageObserver
+import cem
 
 ex = Experiment('cmaes-agent', ingredients=[mapgen.ing])
 output_dir = None
@@ -20,7 +21,12 @@ def cfg(_log):
     evaluations = 50000  # maximum number of evaluations for this run
     render = None  # directory (or param filename) used by 'render' command
     use_eval_seed = False  # use a different map seed for each generation
-    cmaes_popsize = None  # population size
+    cmaes_popsize = None  # population size (CMA-ES)
+    cem_popsize = 1000  # population size (cross-entropy method)
+    cem_best_factor = 0.01  # rho, factor of population being selected
+    cem_sigma = 0.4  # initial sigma
+    cem_noise = 0.0  # noise (relative to sigma); ~0.03 seems okay
+    method = 'cmaes'  # cem or cmaes
 
 
 # core loop (separated for easy profiling)
@@ -73,7 +79,17 @@ def render(render):
 
 @ex.main
 def experiment_main(
-    _run, _seed, cmaes_sigma, evaluations, use_eval_seed, cmaes_popsize
+    _run,
+    _seed,
+    cmaes_sigma,
+    evaluations,
+    use_eval_seed,
+    cmaes_popsize,
+    cem_popsize,
+    cem_best_factor,
+    cem_sigma,
+    cem_noise,
+    method,
 ):
     # while not es.stop():
     param_count = mapgen.count_params()
@@ -84,8 +100,14 @@ def experiment_main(
     if cmaes_popsize:
         opts['popsize'] = cmaes_popsize
     opts['seed'] = _seed
-    es = cma.CMAEvolutionStrategy(param_count * [0], cmaes_sigma, opts)
-    # logger = cma.CMADataLogger(os.path.join(output_dir, 'cmaes-')).register(es)
+    if method == 'cmaes':
+        es = cma.CMAEvolutionStrategy(param_count * [0], cmaes_sigma, opts)
+        # logger = cma.CMADataLogger(os.path.join(output_dir, 'cmaes-')).register(es)
+    else:
+        assert method == 'cem'
+        es = cem.CrossEntropyMethod(
+            param_count * [0], cem_sigma, cem_popsize, cem_best_factor, cem_noise
+        )
 
     evaluation = 0
     iteration = 0
@@ -118,7 +140,6 @@ def experiment_main(
             save_array(f'mean-eval%07d.dat' % evaluation, es.mean)
         # logger.add()  # write data to disc to be plotted
         es.disp()
-    es.result_pretty()
 
 
 def main():
