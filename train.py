@@ -7,7 +7,9 @@ import os
 import imageio
 from sacred import Experiment
 from sacred.observers import FileStorageObserver
+
 import cem
+import de
 
 ex = Experiment('cmaes-agent', ingredients=[mapgen.ing])
 output_dir = None
@@ -26,7 +28,10 @@ def cfg(_log):
     cem_best_factor = 0.01  # rho, factor of population being selected
     cem_sigma = 0.4  # initial sigma
     cem_noise = 0.0  # noise (relative to sigma); ~0.03 seems okay
-    method = 'cmaes'  # cem or cmaes
+    de_popsize = 300
+    de_mut = 0.7
+    de_crossp = 0.3
+    method = 'de'  # cem or cmaes or de
 
 
 # core loop (separated for easy profiling)
@@ -89,6 +94,9 @@ def experiment_main(
     cem_best_factor,
     cem_sigma,
     cem_noise,
+    de_popsize,
+    de_mut,
+    de_crossp,
     method,
 ):
     # while not es.stop():
@@ -103,10 +111,14 @@ def experiment_main(
     if method == 'cmaes':
         es = cma.CMAEvolutionStrategy(param_count * [0], cmaes_sigma, opts)
         # logger = cma.CMADataLogger(os.path.join(output_dir, 'cmaes-')).register(es)
-    else:
-        assert method == 'cem'
+    elif method == 'cem':
         es = cem.CrossEntropyMethod(
             param_count * [0], cem_sigma, cem_popsize, cem_best_factor, cem_noise
+        )
+    else:
+        assert method == 'de'
+        es = de.DifferentialEvolution(
+            param_count * [0], cem_sigma, de_popsize, de_mut, de_crossp
         )
 
     evaluation = 0
@@ -137,7 +149,8 @@ def experiment_main(
 
         save_array('xbest.dat', es.result.xbest)
         if iteration % 20 == 0:
-            save_array(f'mean-eval%07d.dat' % evaluation, es.mean)
+            # save_array(f'mean-eval%07d.dat' % evaluation, es.mean)
+            save_array(f'xbest-eval%07d.dat' % evaluation, es.result.xbest)
         # logger.add()  # write data to disc to be plotted
         es.disp()
 
