@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
 from world import mapgen
 import numpy as np
-import cma
 import sys
 import os
 import imageio
 from sacred import Experiment
 from sacred.observers import FileStorageObserver
-import cem
+import pygmo as pg
 
 ex = Experiment('cmaes-agent', ingredients=[mapgen.ing])
 output_dir = None
@@ -21,12 +20,7 @@ def cfg(_log):
     evaluations = 50000  # maximum number of evaluations for this run
     render = None  # directory (or param filename) used by 'render' command
     use_eval_seed = False  # use a different map seed for each generation
-    cmaes_popsize = None  # population size (CMA-ES)
-    cem_popsize = 1000  # population size (cross-entropy method)
-    cem_best_factor = 0.01  # rho, factor of population being selected
-    cem_sigma = 0.4  # initial sigma
-    cem_noise = 0.0  # noise (relative to sigma); ~0.03 seems okay
-    method = 'cmaes'  # cem or cmaes
+    cmaes_popsize = 23  # population size (CMA-ES)
 
 
 # core loop (separated for easy profiling)
@@ -85,49 +79,44 @@ def experiment_main(
     evaluations,
     use_eval_seed,
     cmaes_popsize,
-    cem_popsize,
-    cem_best_factor,
-    cem_sigma,
-    cem_noise,
-    method,
 ):
     # while not es.stop():
     param_count = mapgen.count_params()
     print('param_count:', param_count)
     _run.info['param_count'] = param_count
+    assert cmaes_popsize is not None
 
-    opts = {}
-    if cmaes_popsize:
-        opts['popsize'] = cmaes_popsize
-    opts['seed'] = _seed
-    if method == 'cmaes':
-        es = cma.CMAEvolutionStrategy(param_count * [0], cmaes_sigma, opts)
-        # logger = cma.CMADataLogger(os.path.join(output_dir, 'cmaes-')).register(es)
-    else:
-        assert method == 'cem'
-        es = cem.CrossEntropyMethod(
-            param_count * [0], cem_sigma, cem_popsize, cem_best_factor, cem_noise
-        )
+    class CrawlerPolicy:
+        def fitness(self, x):
+            return [-evaluate(x)]
 
-    evaluation = 0
+        def get_bounds(self):
+            # pygma-cmaes uses only the extent of those bounds,
+            # and only for initial scaling (with sigma0)
+            low = [-0.5] * param_count
+            high = [+0.5] * param_count
+            return low, high
+
+    prob = pg.problem(CrawlerPolicy())
+    algo = pg.algorithm(pg.cmaes(gen=1, sigma0=cmaes_sigma, seed=_seed, memory=True))
+    algo.set_verbosity(0)
+
+    pop = pg.population(prob)
+    for i in range(cmaes_popsize):
+        # this is somewhat silly: pygma-cmaes will use the best result as mu0
+        pop.push_back(cmaes_sigma * np.random.randn(param_count))
+
     iteration = 0
-    # while not es.stop():
-    while evaluation < evaluations:
-        solutions = es.ask()
-        print('asked to evaluate', len(solutions), 'solutions')
+    while pop.problem.get_fevals() < evaluations:
+        assert use_eval_seed is False
+        pop = algo.evolve(pop)
+        print('prob-evals:', pop.problem.get_fevals())
 
-        if use_eval_seed:
-            eval_seed = np.random.randint(100_000)
-        else:
-            eval_seed = 0
-
-        rewards = [evaluate(x, eval_seed=eval_seed) for x in solutions]
-        # rewards = dask.compute(*rewards)
-        evaluation += len(solutions)
+        rewards = [-x[0] for x in pop.get_f()]
+        evaluation = pop.problem.get_fevals()
         iteration += 1
         print('evaluation', evaluation)
         print('computed rewards:', list(reversed(sorted(rewards))))
-        es.tell(solutions, [-r for r in rewards])
 
         _run.log_scalar("training.min_reward", min(rewards), evaluation)
         _run.log_scalar("training.max_reward", max(rewards), evaluation)
@@ -135,11 +124,12 @@ def experiment_main(
         _run.log_scalar("training.avg_reward", np.average(rewards), evaluation)
         _run.result = max(rewards)
 
-        save_array('xbest.dat', es.result.xbest)
-        if iteration % 20 == 0:
-            save_array(f'mean-eval%07d.dat' % evaluation, es.mean)
-        # logger.add()  # write data to disc to be plotted
-        es.disp()
+        xbest = pop.get_x()[pop.best_idx()]
+        # pop.champion_f[0]
+
+        save_array('xbest.dat', xbest)
+        # if iteration % 20 == 0:
+        #     save_array(f'mean-eval%07d.dat' % evaluation, es.mean)
 
 
 def main():
