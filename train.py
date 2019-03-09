@@ -21,6 +21,8 @@ def cfg(_log):
     render = None  # directory (or param filename) used by 'render' command
     use_eval_seed = False  # use a different map seed for each generation
     cmaes_popsize = 23  # population size (CMA-ES)
+    de_popsize = 300  # population size (de)
+    method = 'de'  # cmaes or de
 
 
 # core loop (separated for easy profiling)
@@ -35,6 +37,7 @@ def tick(world):
 
 @ex.capture
 def evaluate(params, world_count, world_ticks, eval_seed=0):
+    # print('params', params[0], params[1], params[2])
     rewards = []
     for world_no in range(world_count):
         world = mapgen.create_world(map_seed=(world_no + eval_seed))
@@ -79,6 +82,8 @@ def experiment_main(
     evaluations,
     use_eval_seed,
     cmaes_popsize,
+    de_popsize,
+    method
 ):
     # while not es.stop():
     param_count = mapgen.count_params()
@@ -87,22 +92,31 @@ def experiment_main(
     assert cmaes_popsize is not None
 
     class CrawlerPolicy:
+        def __init__(self, bound):
+            self.bound = bound
+
         def fitness(self, x):
             return [-evaluate(x)]
 
         def get_bounds(self):
             # pygma-cmaes uses only the extent of those bounds,
             # and only for initial scaling (with sigma0)
-            low = [-0.5] * param_count
-            high = [+0.5] * param_count
+            low = [-self.bound] * param_count
+            high = [+self.bound] * param_count
             return low, high
 
-    prob = pg.problem(CrawlerPolicy())
-    algo = pg.algorithm(pg.cmaes(gen=1, sigma0=cmaes_sigma, seed=_seed, memory=True))
-    algo.set_verbosity(0)
+    prob = pg.problem(CrawlerPolicy(
+        bound=(0.5 if method == 'cmaes' else float('inf'))
+    ))
+    if method == 'cmaes':
+        algo = pg.algorithm(pg.cmaes(gen=1, sigma0=cmaes_sigma, seed=_seed, memory=True))
+        algo.set_verbosity(0)
+    else:
+        assert method == 'de'
+        algo = pg.algorithm(pg.de(gen=1, variant=1))
 
     pop = pg.population(prob)
-    for i in range(cmaes_popsize):
+    for i in range(cmaes_popsize if method == 'cmaes' else de_popsize):
         # this is somewhat silly: pygma-cmaes will use the best result as mu0
         pop.push_back(cmaes_sigma * np.random.randn(param_count))
 
