@@ -22,11 +22,12 @@ def cfg(_log):
     render = None  # directory (or param filename) used by 'render' command
     use_eval_seed = False  # use a different map seed for each generation
     cmaes_popsize = None  # population size (CMA-ES)
-    cem_popsize = 1000  # population size (cross-entropy method)
-    cem_best_factor = 0.01  # rho, factor of population being selected
+    cem_popsize = 300  # population size (cross-entropy method)
+    cem_best_factor = 0.05  # rho, factor of population being selected
     cem_sigma = 0.4  # initial sigma
-    cem_noise = 0.0  # noise (relative to sigma); ~0.03 seems okay
-    method = 'cmaes'  # cem or cmaes
+    cem_cov_tau = 5.0  # time constant [generations] for averaging covariance
+    cem_mu_tau = 0.0  # time constant [generations] for averaging mu
+    method = 'cem'  # cem or cmaes
 
 
 # core loop (separated for easy profiling)
@@ -88,7 +89,8 @@ def experiment_main(
     cem_popsize,
     cem_best_factor,
     cem_sigma,
-    cem_noise,
+    cem_mu_tau,
+    cem_cov_tau,
     method,
 ):
     # while not es.stop():
@@ -106,7 +108,12 @@ def experiment_main(
     else:
         assert method == 'cem'
         es = cem.CrossEntropyMethod(
-            param_count * [0], cem_sigma, cem_popsize, cem_best_factor, cem_noise
+            param_count * [0],
+            cem_sigma,
+            cem_popsize,
+            cem_best_factor,
+            cem_mu_tau,
+            cem_cov_tau,
         )
 
     evaluation = 0
