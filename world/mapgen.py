@@ -13,7 +13,6 @@ ing = Ingredient('mapgen')
 def cfg():
     world_size = 128
     bias_fac = 0.1  # scale NN bias init (relative to weight init)
-    l2_skew = 1.0
     agent_count = 200
     easy_start = False
     walk_through_wall_prob = 0.0625
@@ -58,7 +57,7 @@ def create_world(map_seed, _seed, _run, world_size):
 
 @ing.capture
 def add_agents(
-    world, params, bias_fac, l2_skew, agent_count, easy_start, walk_through_wall_prob
+    world, params, bias_fac, agent_count, easy_start, walk_through_wall_prob
 ):
 
     ac = pixelcrawl.AgentController()
@@ -66,15 +65,20 @@ def add_agents(
     idx = [0]
 
     def randn(*shape):
-        res = params[idx[0] : idx[0] + np.prod(shape)].reshape(*shape)
+        res = params[idx[0]:idx[0] + np.prod(shape)].reshape(*shape)
         idx[0] += np.prod(shape)
         assert shape == res.shape
         return res
 
-    ac.w0 = randn(*ac.w0.shape) / l2_skew
-    ac.b0 = randn(*ac.b0.shape) * bias_fac / l2_skew
-    ac.w1 = randn(*ac.w1.shape) * l2_skew
-    ac.b1 = randn(*ac.b1.shape) * bias_fac * l2_skew
+    # something like Xavier and He initialization: https://stats.stackexchange.com/a/393012/52418
+    # something like input normalization: * 2.1
+    # note: w#.shape[1] counts the inputs, w#.shape[0] the outputs
+    ac.w0 = randn(*ac.w0.shape) * np.sqrt(2 / ac.w0.shape[1]) * 2.1
+    ac.b0 = randn(*ac.b0.shape) * bias_fac
+    # note: followed by relu activation
+    ac.w1 = randn(*ac.w1.shape) * np.sqrt(2 / (ac.w1.shape[1] + ac.w1.shape[0]))
+    ac.b1 = randn(*ac.b1.shape) * bias_fac
+    # note: followed by softmax activation
 
     if params is not None:
         assert idx[0] == len(params), idx

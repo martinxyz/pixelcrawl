@@ -14,7 +14,7 @@ output_dir = None
 
 @ex.config
 def cfg(_log):
-    cmaes_sigma = 0.4
+    cmaes_sigma = 1.0
     world_count = 5  # number of worlds to evaluate with
     world_ticks = 200
     evaluations = 50000  # maximum number of evaluations for this run
