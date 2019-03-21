@@ -16,11 +16,13 @@ def cfg():
     agent_count = 200
     easy_start = False
     walk_through_wall_prob = 0.0625
+    agent_n_hidden = 20
 
 
 @ing.capture
-def count_params():
+def count_params(agent_n_hidden):
     ac = pixelcrawl.AgentController()
+    assert agent_n_hidden == len(ac.b0)
     cnt = 0
     cnt += np.prod(ac.w0.shape)
     cnt += np.prod(ac.b0.shape)
