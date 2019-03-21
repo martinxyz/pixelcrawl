@@ -26,6 +26,14 @@ class SmallNN {
     Matrix<float, n_hidden, 1> a1 = w0 * inputs + b0;
     for (int i=0; i<n_hidden; i++) a1(i) = relu(a1(i));  // faster than unaryExpr
     Matrix<float, n_outputs, 1> a2 = w1 * a1 + b1;
+
+    // somewhat hacky residual connection, but it measurably helps
+    a2 *= 0.1;
+    for (int i=i; i < n_hidden && i < n_outputs; i++) {
+      a2(i) += a1(i);
+    }
+    a2 *= 1.0 / (1.0 + 0.1);
+
     return a2;
   }
 };
