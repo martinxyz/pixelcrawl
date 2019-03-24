@@ -7,6 +7,8 @@ import os
 import imageio
 from sacred import Experiment
 from sacred.observers import FileStorageObserver
+import dask
+import dask.multiprocessing
 
 ex = Experiment('cmaes-agent', ingredients=[mapgen.ing])
 output_dir = None
@@ -35,15 +37,23 @@ def tick(world):
 
 @ex.capture
 def evaluate(params, world_count, world_ticks, eval_seed=0):
-    rewards = []
-    for world_no in range(world_count):
+    # XXX: How does multiprocessing interact with sacred's predicable rng
+    #      seeds? Ideally all seeds are derived from parameters of the
+    #      dask.delayed and then we're done. Not caring much about
+    #      predictability, but currently create_world() also uses sacred's
+    #      _seed feature which is supposed to generate a different seed per
+    #      call. Maybe now a different process can get the same _seed?
+
+    def eval_world(world_no):
         world = mapgen.create_world(map_seed=(world_no + eval_seed))
         mapgen.add_agents(world, params=params)
         for i in range(world_ticks):
             tick(world)
-        rewards.append(world.total_score)
-    mean_reward = np.mean(rewards)
-    return mean_reward
+        return world.total_score
+
+    rewards = [dask.delayed(eval_world)(world_no)
+               for world_no in range(world_count)]
+    return dask.delayed(np.mean)(rewards)
 
 
 def save_array(filename, data):
@@ -100,7 +110,7 @@ def experiment_main(
             eval_seed = 0
 
         rewards = [evaluate(x, eval_seed=eval_seed) for x in solutions]
-        # rewards = dask.compute(*rewards)
+        rewards = dask.compute(*rewards)
         evaluation += len(solutions)
         iteration += 1
         print('evaluation', evaluation)
@@ -145,6 +155,8 @@ def main():
 
     ex.observers.append(FileStorageObserver.create(output_dir))
     args.insert(1, '--name=' + os.path.split(output_dir)[-1])
+
+    dask.config.set(scheduler='processes')
     ex.run_commandline(args)
 
 
