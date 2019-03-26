@@ -63,6 +63,7 @@ def save_array(filename, data):
 
 @ex.command(unobserved=True)
 def render(render):
+    dask.config.set(scheduler='synchronous')
     filename = render
     if os.path.isdir(filename):
         filename = os.path.join(filename, 'xbest.dat')
@@ -78,6 +79,7 @@ def render(render):
 
     params = np.loadtxt(filename)
     reward = evaluate(params)
+    reward = dask.compute(reward)
     print('reward:', reward)
 
 
