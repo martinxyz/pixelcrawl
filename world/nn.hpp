@@ -29,7 +29,8 @@ class SmallNN {
 
     // somewhat hacky residual connection, but it measurably helps
     a2 *= 0.1;
-    for (int i=i; i < n_hidden && i < n_outputs; i++) {
+    static_assert(n_outputs <= n_hidden, "n_hidden must be >= n_outputs");
+    for (int i=i; i<n_outputs; i++) {
       a2(i) += a1(i);
     }
     a2 *= 1.0 / (1.0 + 0.1);

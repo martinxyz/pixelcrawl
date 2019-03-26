@@ -85,7 +85,6 @@ def render(render):
 def experiment_main(
     _run, _seed, cmaes_sigma, evaluations, use_eval_seed, cmaes_popsize
 ):
-    # while not es.stop():
     param_count = mapgen.count_params()
     print('param_count:', param_count)
     _run.info['param_count'] = param_count
@@ -95,11 +94,9 @@ def experiment_main(
         opts['popsize'] = cmaes_popsize
     opts['seed'] = _seed
     es = cma.CMAEvolutionStrategy(param_count * [0], cmaes_sigma, opts)
-    # logger = cma.CMADataLogger(os.path.join(output_dir, 'cmaes-')).register(es)
 
     evaluation = 0
     iteration = 0
-    # while not es.stop():
     while evaluation < evaluations:
         solutions = es.ask()
         print('asked to evaluate', len(solutions), 'solutions')
@@ -125,10 +122,9 @@ def experiment_main(
 
         save_array('xbest.dat', es.result.xbest)
         if iteration % 20 == 0:
-            save_array(f'mean-eval%07d.dat' % evaluation, es.mean)
-        # logger.add()  # write data to disc to be plotted
+            save_array(f'xfavorite-eval%07d.dat' % evaluation, es.result.xfavorite)
+            save_array(f'stds-eval%07d.dat' % evaluation, es.result.stds)
         es.disp()
-    es.result_pretty()
 
 
 def main():
