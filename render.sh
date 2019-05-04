@@ -9,7 +9,8 @@ fi
 
 rm -f "$dir"/render-world*.png
 
-param_file=$(ls "$dir"/mean-*.dat|sort|tail -n 1)
+# param_file=$(ls "$dir"/mean-*.dat|sort|tail -n 1)
+param_file=$(ls "$dir"/xfavorite-*.dat|sort|tail -n 1)
 echo "using $param_file"
 
 set -e -x

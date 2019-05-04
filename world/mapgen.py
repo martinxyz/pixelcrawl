@@ -2,7 +2,6 @@ from os.path import dirname, join
 import numpy as np
 import lut2d
 import pixelcrawl
-import time
 from sacred import Ingredient
 from functools import lru_cache
 

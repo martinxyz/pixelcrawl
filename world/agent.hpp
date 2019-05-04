@@ -42,7 +42,7 @@ class AgentController: public SmallNN<agent_num_inputs, 20, 4+agent_num_states> 
 
     constexpr float state_decay = 0.01;
     for (int i=0; i<agent_num_states; i++) {
-        states[i] = (1.0-state_decay)*states[i] + state_decay*o(i+4);
+      states[i] = (1.0-state_decay)*states[i] + state_decay*o(i+4);
     }
 
     return action;

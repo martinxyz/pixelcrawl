@@ -72,7 +72,7 @@ def render(render):
     i = [0]
 
     def tick_callback(world):
-        i[0] += 1
+        i[0] += 1  # XXX this is broken, order is not consistent
         img = mapgen.render(world)
         fn = os.path.join(dirname, 'render-world-%06d.png' % i[0])
         imageio.imwrite(fn, img, compress_level=6)

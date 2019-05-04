@@ -10,8 +10,11 @@ set -e
 # make -s -C build
 # export PYTHONPATH="build"
 
+# rm -rf CMakeFiles CMakeCache.txt
 cmake .
-make -s
+
+# make -s
+make VERBOSE=1
 
 export MKL_NUM_THREADS=1
 export NUMEXPR_NUM_THREADS=1

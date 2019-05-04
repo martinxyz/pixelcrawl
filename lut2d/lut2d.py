@@ -22,6 +22,7 @@ def binary_lut_filter(inp, lut):
 @guvectorize(["void(uint8[:,:], uint8[:], uint8[:,:])"],
              "(n,n),(k)->(n,n)", nopython=True)
 def binary_lut_filter_inner(src, lut, result):
+    # everything except borders
     h = src.shape[0]
     w = src.shape[1]
     for y in range(1, h-1):
@@ -38,8 +39,8 @@ def binary_lut_filter_inner(src, lut, result):
             key |= (src[y+1, x+1] & 1) << 8
             result[y, x] = lut[key]
 
-    # border conditions
-    MASK = w-1
+    # borders
+    MASK = w-1  # w == h; always a power of two (assertion above)
     for y in range(-1, 1):
         for x in range(w):
             key = 0
