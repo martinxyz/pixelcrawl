@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from world import mapgen
 import numpy as np
-import cma
+import ddcma
 import sys
 import os
 import imageio
@@ -91,30 +91,31 @@ def experiment_main(
     print('param_count:', param_count)
     _run.info['param_count'] = param_count
 
-    opts = {}
-    if cmaes_popsize:
-        opts['popsize'] = cmaes_popsize
-    opts['seed'] = _seed
-    es = cma.CMAEvolutionStrategy(param_count * [0], cmaes_sigma, opts)
+    state = {
+        'rewards': None,
+    }
 
-    evaluation = 0
-    iteration = 0
-    while evaluation < evaluations:
-        solutions = es.ask()
+    def func(solutions):
         print('asked to evaluate', len(solutions), 'solutions')
-
-        if use_eval_seed:
-            eval_seed = np.random.randint(100_000)
-        else:
-            eval_seed = 0
+        eval_seed = np.random.randint(100_000) if use_eval_seed else 0
 
         rewards = [evaluate(x, eval_seed=eval_seed) for x in solutions]
         rewards = dask.compute(*rewards)
-        evaluation += len(solutions)
+        state['rewards'] = rewards
+        return np.array([-r for r in rewards])
+
+    es = ddcma.DdCma(func, param_count * [0.0], param_count * [cmaes_sigma],
+                     lam=cmaes_popsize)
+
+    iteration = 0
+    evaluation = 0
+    while evaluation < evaluations:
+        es.onestep()
         iteration += 1
+        rewards = state['rewards']
+        evaluation += len(rewards)
         print('evaluation', evaluation)
         print('computed rewards:', list(reversed(sorted(rewards))))
-        es.tell(solutions, [-r for r in rewards])
 
         _run.log_scalar("training.min_reward", min(rewards), evaluation)
         _run.log_scalar("training.max_reward", max(rewards), evaluation)
@@ -122,11 +123,10 @@ def experiment_main(
         _run.log_scalar("training.avg_reward", np.average(rewards), evaluation)
         _run.result = max(rewards)
 
-        save_array('xbest.dat', es.result.xbest)
+        save_array('xbest.dat', es.xmean)
         if iteration % 20 == 0:
-            save_array(f'xfavorite-eval%07d.dat' % evaluation, es.result.xfavorite)
-            save_array(f'stds-eval%07d.dat' % evaluation, es.result.stds)
-        es.disp()
+            save_array(f'xfavorite-eval%07d.dat' % evaluation, es.xmean)
+            # save_array(f'stds-eval%07d.dat' % evaluation, es.result.stds)
 
 
 def main():
