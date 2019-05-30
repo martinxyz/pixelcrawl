@@ -28,7 +28,6 @@ class SmallNN {
     Matrix<float, n_outputs, 1> a2 = w1 * a1 + b1;
 
     // somewhat hacky residual connection, but it measurably helps
-    // TODO: re-validate the above claim after bugfix
     a2 *= 0.1;
     static_assert(n_outputs <= n_hidden, "n_hidden must be >= n_outputs");
     for (int i=0; i<n_outputs; i++) {
