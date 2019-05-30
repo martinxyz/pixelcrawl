@@ -10,10 +10,12 @@ set -e
 # make -s -C build
 # export PYTHONPATH="build"
 
-# rm -rf CMakeFiles CMakeCache.txt
-cmake .
+rm -rf CMakeFiles CMakeCache.txt
+cmake -DCMAKE_BUILD_TYPE=Release .
+# cmake -DCMAKE_BUILD_TYPE=Debug .
+# cmake -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DCMAKE_BUILD_TYPE=Debug .
 
-# make -s
+make clean
 make VERBOSE=1
 
 export MKL_NUM_THREADS=1

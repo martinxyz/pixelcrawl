@@ -1,7 +1,7 @@
 # pixelcrawl
 A sandbox for artificial life and evolution strategies.
 
-See Article: [Exploring a Pixel-Maze with Evolution Strategies](https://log2.ch/2019/exploring-a-pixel-maze-with-evolution-strategies)
+See article: [Exploring a Pixel-Maze with Evolution Strategies](https://log2.ch/2019/exploring-a-pixel-maze-with-evolution-strategies)
 
 The code consists of a Python part and a Python module written in C++.
 
