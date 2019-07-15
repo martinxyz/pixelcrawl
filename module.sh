@@ -12,6 +12,7 @@ set -e
 
 rm -rf CMakeFiles CMakeCache.txt
 cmake -DCMAKE_BUILD_TYPE=Release .
+# cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo .
 # cmake -DCMAKE_BUILD_TYPE=Debug .
 # cmake -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DCMAKE_BUILD_TYPE=Debug .
 

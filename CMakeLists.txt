@@ -16,8 +16,9 @@ target_compile_options(pixelcrawl PRIVATE -Wall -Werror -Wextra)
 # gcc8.2, -O2, and removing -march=native: difference ~10%
 # clang7.0: 2x slower than gcc (benchmark: test_world_tick)
 # debug with "-g -fno-omit-frame-pointer": ~2% slowdown
+# -ffast-math: ~3%
 
-target_compile_options(pixelcrawl PRIVATE -O3 -march=native -mtune=native)
+target_compile_options(pixelcrawl PRIVATE -O3 -march=native -ffast-math)
 # target_compile_options(pixelcrawl PRIVATE -g -fno-omit-frame-pointer)
 
 # only the dask framework should distribute tasks to cores

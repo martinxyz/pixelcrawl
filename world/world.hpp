@@ -20,11 +20,11 @@ enum Block {
 };
 
 struct Pixel {
-  unsigned int block : 4;
-  unsigned int pheromone_1 : 1;
-  unsigned int pheromone_2 : 1;
-  unsigned int reserved_1 : 1;
-  unsigned int reserved_2 : 1;
+  uint8_t block : 4;
+  uint8_t pheromone_1 : 1;
+  uint8_t pheromone_2 : 1;
+  uint8_t reserved_1 : 1;
+  uint8_t reserved_2 : 1;
 };
 
 struct Agent {
@@ -100,7 +100,8 @@ class World {
 
   void tick_agents() {
     constexpr int N = world_size;
-    std::normal_distribution<float> normal_dist(0.0, 1.0);
+    std::normal_distribution<float> normal_dist(0.0f, 1.0f);
+    std::bernoulli_distribution walk_through_wall(static_cast<float>(walk_through_wall_prob_));
     for (auto &a: agents_) {
       pixels_[a.y*N + a.x].pheromone_1 = 1;
 
@@ -125,7 +126,7 @@ class World {
       count_pheremone_1 += pixel_at(a.x-1, a.y+0).pheromone_1;
       count_pheremone_1 += pixel_at(a.x+0, a.y+1).pheromone_1;
       count_pheremone_1 += pixel_at(a.x+0, a.y-1).pheromone_1;
-      inputs(idx++) = count_pheremone_1 / 5.0;
+      inputs(idx++) = count_pheremone_1 * (1.0f / 5.0f);
       // know previous state
       for (int i=0; i<agent_num_states; i++) inputs[idx++] = a.state[i];
       // one random input
@@ -148,7 +149,6 @@ class World {
         case AgentAction::Up:    dy = -1; break;
       }
 
-      std::bernoulli_distribution walk_through_wall(walk_through_wall_prob_);
       if (pixel_at(a.x + dx, a.y + dy).block != Wall || walk_through_wall(rng_)) {
         a.x = static_cast<unsigned>(a.x + dx) % world_size;
         a.y = static_cast<unsigned>(a.y + dy) % world_size;
@@ -163,11 +163,12 @@ class World {
   }
 
   void tick_pheromones() {
-    std::bernoulli_distribution dist(1.0/128);
-    for (auto &p: pixels_) {
-      if (p.pheromone_1 && dist(rng_)) {
-        p.pheromone_1 = 0;
-      }
+    constexpr int N = world_size;
+    std::geometric_distribution<> dist(1.0f/128);
+    int idx = dist(rng_);
+    while (idx < N*N) {
+      pixels_[idx].pheromone_1 = 0;
+      idx += dist(rng_) + 1;
     }
     // std::random_shuffle(agents_.begin(), agents_.end());
   }
