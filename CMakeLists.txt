@@ -25,3 +25,15 @@ target_compile_options(pixelcrawl PRIVATE -O3 -march=native -ffast-math)
 # (not sure why this is not working; still need OMP_NUM_THREADS=1 env variable)
 target_compile_definitions(pixelcrawl PRIVATE EIGEN_DONT_PARALLELIZE)
 target_compile_options(pixelcrawl PRIVATE -fno-openmp)
+
+
+# pytest (not so nice, maybe just run start them manually)
+enable_testing()
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+add_test(NAME world
+  COMMAND Python3::Interpreter -m pytest -r a -v --benchmark-disable
+  ${PROJECT_SOURCE_DIR}/world
+  ${PROJECT_SOURCE_DIR}/lut2d
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+set_tests_properties(world PROPERTIES
+  ENVIRONMENT PYTHONPATH=${CMAKE_CURRENT_BINARY_DIR})

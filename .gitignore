@@ -1,16 +1,10 @@
-*_wrap.cpp
 __pycache__
-*.so
-build/
 *.pyc
+build*/
 cmaes-*.dat
 core
 perf.*
 .ipynb*
-CMakeCache.txt
-CMakeFiles
-Makefile
 unnamed_output
 outputs
-cmake_install.cmake
 profile.dat
