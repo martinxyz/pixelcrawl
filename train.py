@@ -51,6 +51,9 @@ def evaluate(params, world_count, world_ticks, eval_seed=0):
             tick(world)
         return world.total_score
 
+    # Simplify: use ProcessPoolExecutor.map() instead.
+    # ref: https://github.com/zuoxingdong/lagom/blob/master/baselines/cem/experiment.py#L108
+
     rewards = [dask.delayed(eval_world)(world_no)
                for world_no in range(world_count)]
     return dask.delayed(np.mean)(rewards)
@@ -155,6 +158,7 @@ def main():
     args.insert(1, '--name=' + os.path.split(output_dir)[-1])
 
     dask.config.set(scheduler='processes')
+    # dask.config.set(scheduler='synchronous')
     ex.run_commandline(args)
 
 

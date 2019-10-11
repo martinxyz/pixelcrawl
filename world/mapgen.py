@@ -48,7 +48,7 @@ def gen_walls_and_food(map_seed, size):
     return walls, food
 
 
-@ing.capture
+@ing.capture  # <-- where does this get its params from, in the distributed variant (did I ever run this distributed?)
 def create_world(map_seed, _seed, _run, world_size):
     world = pixelcrawl.World(_seed)
     walls, food = gen_walls_and_food(map_seed, world_size)
