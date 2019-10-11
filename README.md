@@ -20,7 +20,7 @@ sudo apt install libeigen3-dev  # or equivalent
 git submodule update  # fetches external/pybind11
 ```
 
-The `./train.sh` script will invoke cmake and compile the module directly in the source tree and then call `train.py`. (Yes bad practice, but Python scripts can then just import the module without installation or sys.path fiddeling.)
+The `./train.sh` script will invoke cmake (creating build-rel and build-dbg), compile the module, and then call `train.py`. If you want to call python scripts directly instead, you need to set PYTHONPATH to include the build directory (see `module.sh`).
 
 ```
 ./train.sh --help

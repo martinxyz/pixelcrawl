@@ -15,7 +15,8 @@ fi
 
 # cmake -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DCMAKE_BUILD_TYPE=Debug -S . -B build-clang
 
-BUILD_DIR=build-dbg
+BUILD_DIR=build-rel
+# BUILD_DIR=build-dbg
 
 # make -C "$BUILD_DIR" clean
 # make -s -C "$BUILD_DIR"
