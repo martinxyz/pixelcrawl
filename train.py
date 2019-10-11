@@ -10,6 +10,9 @@ from sacred.observers import FileStorageObserver
 import dask
 import dask.multiprocessing
 
+sys.path.insert(0, 'external/fCMApy')
+from fCSA import fCSA
+
 ex = Experiment('cmaes-agent', ingredients=[mapgen.ing])
 output_dir = None
 
@@ -94,11 +97,14 @@ def experiment_main(
     print('param_count:', param_count)
     _run.info['param_count'] = param_count
 
-    opts = {}
-    if cmaes_popsize:
-        opts['popsize'] = cmaes_popsize
-    opts['seed'] = _seed
-    es = cma.CMAEvolutionStrategy(param_count * [0], cmaes_sigma, opts)
+    # opts = {}
+    # if cmaes_popsize:
+    #     opts['popsize'] = cmaes_popsize
+    # opts['seed'] = _seed
+    # es = cma.CMAEvolutionStrategy(param_count * [0], cmaes_sigma, opts)
+
+    assert cmaes_popsize is None
+    es = fCSA(np.zeros(param_count), cmaes_sigma**2, noise_adaptation=True)
 
     evaluation = 0
     iteration = 0
@@ -125,11 +131,12 @@ def experiment_main(
         _run.log_scalar("training.avg_reward", np.average(rewards), evaluation)
         _run.result = max(rewards)
 
-        save_array('xbest.dat', es.result.xbest)
-        if iteration % 20 == 0:
-            save_array(f'xfavorite-eval%07d.dat' % evaluation, es.result.xfavorite)
-            save_array(f'stds-eval%07d.dat' % evaluation, es.result.stds)
-        es.disp()
+        # save_array('xbest.dat', es.result.xbest)
+        save_array('xbest.dat', es.mean)
+        # if iteration % 20 == 0:
+        #     save_array(f'xfavorite-eval%07d.dat' % evaluation, es.result.xfavorite)
+        #     save_array(f'stds-eval%07d.dat' % evaluation, es.result.stds)
+        # es.disp()
 
 
 def main():
