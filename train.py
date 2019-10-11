@@ -164,8 +164,8 @@ def main():
     ex.observers.append(FileStorageObserver.create(output_dir))
     args.insert(1, '--name=' + os.path.split(output_dir)[-1])
 
-    dask.config.set(scheduler='processes')
-    # dask.config.set(scheduler='synchronous')
+    # dask.config.set(scheduler='processes')
+    dask.config.set(scheduler='synchronous')
     ex.run_commandline(args)
 
 
