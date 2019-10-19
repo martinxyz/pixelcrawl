@@ -10,8 +10,6 @@ The code consists of a Python part and a Python module written in C++.
 Python dependencies:
 ```
 pip install -r requirements.txt  # preferably in a virtualenv
-# patch has been meged upstream, but not part of a release yet
-pip install --upgrade git+https://github.com/IDSIA/sacred.git@fa452e4eacf29caa59fb46c274a519669d6b4790
 ```
 
 C++ dependencies:
