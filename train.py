@@ -12,6 +12,7 @@ import dask.multiprocessing
 
 sys.path.insert(0, 'external/fCMApy')
 from fCSA import fCSA
+from CSA import CSA
 
 ex = Experiment('cmaes-agent', ingredients=[mapgen.ing])
 output_dir = None
@@ -26,6 +27,8 @@ def cfg(_log):
     render = None  # directory (or param filename) used by 'render' command
     use_eval_seed = False  # use a different map seed for each generation
     cmaes_popsize = None  # population size
+    algo = 'cma'  # cma | csa | fcsa
+    fcsa_noise_adaptation = True
 
 
 # core loop (separated for easy profiling)
@@ -91,23 +94,31 @@ def render(render):
 
 @ex.main
 def experiment_main(
-    _run, _seed, cmaes_sigma, evaluations, use_eval_seed, cmaes_popsize
+    _run, _seed, cmaes_sigma, evaluations, use_eval_seed, cmaes_popsize, algo, fcsa_noise_adaptation
 ):
     param_count = mapgen.count_params()
     print('param_count:', param_count)
     _run.info['param_count'] = param_count
 
-    # opts = {}
-    # if cmaes_popsize:
-    #     opts['popsize'] = cmaes_popsize
-    # opts['seed'] = _seed
-    # es = cma.CMAEvolutionStrategy(param_count * [0], cmaes_sigma, opts)
-
-    assert cmaes_popsize is None
-    es = fCSA(np.zeros(param_count), cmaes_sigma**2, noise_adaptation=True)
+    if algo == 'cma':
+        opts = {}
+        if cmaes_popsize:
+            opts['popsize'] = cmaes_popsize
+        opts['seed'] = _seed
+        es = cma.CMAEvolutionStrategy(param_count * [0], cmaes_sigma, opts)
+    elif algo == 'fcsa':
+        es = fCSA(np.zeros(param_count), cmaes_sigma**2,
+                  noise_adaptation=fcsa_noise_adaptation,
+                  popsize=cmaes_popsize)
+    elif algo == 'csa':
+        es = CSA(np.zeros(param_count), cmaes_sigma**2, popsize=cmaes_popsize)
+    else:
+        print('algo', repr(algo), 'not implemented')
+        sys.exit(1)
 
     evaluation = 0
     iteration = 0
+    rewards_logging = []
     while evaluation < evaluations:
         solutions = es.ask()
         print('asked to evaluate', len(solutions), 'solutions')
@@ -125,18 +136,38 @@ def experiment_main(
         print('computed rewards:', list(reversed(sorted(rewards))))
         es.tell(solutions, [-r for r in rewards])
 
-        _run.log_scalar("training.min_reward", min(rewards), evaluation)
-        _run.log_scalar("training.max_reward", max(rewards), evaluation)
-        _run.log_scalar("training.med_reward", np.median(rewards), evaluation)
-        _run.log_scalar("training.avg_reward", np.average(rewards), evaluation)
-        _run.result = max(rewards)
-
+        rewards_logging.extend(rewards)
         # save_array('xbest.dat', es.result.xbest)
-        save_array('xbest.dat', es.mean)
-        # if iteration % 20 == 0:
-        #     save_array(f'xfavorite-eval%07d.dat' % evaluation, es.result.xfavorite)
-        #     save_array(f'stds-eval%07d.dat' % evaluation, es.result.stds)
-        # es.disp()
+        if iteration % 10 == 0:
+            _run.log_scalar("training.min_reward", min(rewards_logging), evaluation)
+            _run.log_scalar("training.max_reward", max(rewards_logging), evaluation)
+            _run.log_scalar("training.med_reward", np.median(rewards_logging), evaluation)
+            _run.log_scalar("training.avg_reward", np.average(rewards_logging), evaluation)
+            _run.log_scalar("training.iteration", iteration, evaluation)
+            _run.result = max(rewards_logging)
+            rewards_logging = []
+
+            if algo in ['csa', 'fcsa']:
+                _run.log_scalar("algo.variance", es.variance, evaluation)
+                _run.log_scalar("algo.n_off", es.n_off, evaluation)
+                _run.log_scalar("algo.mu_eff", es._mu_eff, evaluation)
+            if algo == 'fcsa':
+                _run.log_scalar("algo.sigma_noise", es._sigma_noise, evaluation)
+
+            mean = es.result.xfavorite if algo == 'cma' else es.mean
+            best = es.result.xbest if algo == 'cma' else mean
+
+            _run.log_scalar("training.xmscale", np.sqrt(np.mean(mean**2)), evaluation)
+
+            if iteration % 100 == 0:
+                save_array('xbest.dat', best)
+                save_array(f'xfavorite-eval%07d.dat' % evaluation, mean)
+
+            if algo == 'cma':
+                save_array('xbest.dat', es.mean)
+                save_array(f'xfavorite-eval%07d.dat' % evaluation, es.result.xfavorite)
+                save_array(f'stds-eval%07d.dat' % evaluation, es.result.stds)
+                es.disp()
 
 
 def main():
